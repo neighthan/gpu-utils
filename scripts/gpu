@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+from gpu_utils.utils import get_running_pids, nvidia_smi
+from subprocess import run, PIPE
+import re
+
+gpu_info = nvidia_smi(all_output=True)
+pids = get_running_pids(gpu_info)
+
+print(gpu_info)
+
+if pids:
+    print(run(["ps", "u", *pids], stdout=PIPE).stdout.decode())
