@@ -21,8 +21,21 @@ from gpu_utils.utils import gpu_init
 # sets GPU ids to use nvidia-smi ordering (CUDA_DEVICE_ORDER = PCI_BUS_ID)
 # finds the gpu with the most free utilization or memory
 # hides all other GPUs so you only use this one (CUDA_VISIBLE_DEVICES = <gpu_id>)
-# optionally sets up a `tf.ConfigProto` or `torch.device`
 gpu_id = gpu_init(best_gpu_metric="util") # could also use "mem"
+```
+
+If you use TensorFlow or PyTorch, `gpu_init` can take care of another couple of steps for you:
+
+```python
+# a torch.device for the selected GPU
+device = gpu_init(ml_library="torch")
+```
+
+```python
+import tensorflow as tf
+# a tf.ConfigProto to allow soft placement + GPU memory growth
+config = gpu_init(ml_library="tensorflow")
+session = tf.Session(config=config)
 ```
 
 ## Command Line Scripts
