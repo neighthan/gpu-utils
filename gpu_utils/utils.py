@@ -88,15 +88,60 @@ def get_best_gpu(metric: str = "util") -> int:
     return best_gpu.num
 
 
-def gpu_init(gpu_id: Optional[int] = None, best_gpu_metric: str = "util") -> int:
+def gpu_init(
+    gpu_id: Optional[int] = None,
+    best_gpu_metric: str = "util",
+    ml_library: str = "",
+    verbose: bool = False,
+):
     """
     Set up environment variables CUDA_DEVICE_ORDER and CUDA_VISIBLE_DEVICES.
 
-    :param best_gpu_metric: one of {util, mem}
+    If `ml_library` is specified, additional library-specific setup is done.
+
+    :param gpu_id: the PCI_BUS_ID of the GPU to use (the id shown when you run `nvidia-smi`)
+      if `None`, the "best" GPU is chosen
+    :param best_gpu_metric: one of {util, mem}; which metric to maximize when choosing the best GPU to use
+    :param ml_library: one of {torch, tensorflow}; additional setup specific to this library will be done.
+      torch: create a `device` using the appropriate GPU
+      tensorflow: create a `ConfigProto` that allows soft placement + GPU memory growth
+    :param verbose: whether to print the id of the chosen GPU (or that no GPU was found)
+    :returns: the id of the GPU chosen if `ml_library == ""`,
+      the `torch.device` if `ml_library == "torch"`, or
+      the `tf.ConfigProto` if `ml_library == "tensorflow"`
+      If no GPUs are found, the id will be `None` but a usable `device` or `ConfigProto` will still be
+      returned if one should be. This function should thus be safe to use in code that runs on both GPU-
+      equipped and CPU-only machines.
     """
-    gpu_id = gpu_id or get_best_gpu(best_gpu_metric)
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    try:
+        gpu_id = gpu_id or get_best_gpu(best_gpu_metric)
+        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
+        if verbose:
+            print(f"Running on GPU {gpu_id}.")
+    except ValueError:  # no GPUs found
+        gpu_id = None
+        if verbose:
+            print("No GPUs found!")
+
+    if ml_library == "":
+        pass
+    elif ml_library == "torch":
+        import torch
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        return device
+    elif ml_library == "tensorflow":
+        import tensorflow as tf
+
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        config.allow_soft_placement = True
+        return config
+    else:
+        raise NotImplementedError(f"Support for {ml_library} is not implemented.")
+
     return gpu_id
 
 
