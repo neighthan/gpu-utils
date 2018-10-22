@@ -13,6 +13,8 @@ A few small functions/scripts for working with GPUs.
 pip install gpu_utils
 ```
 
+The PyPI page is [here][pypi page].
+
 ## Usage
 
 ```python
@@ -45,3 +47,5 @@ session = tf.Session(config=config)
 `kill_interrupted_processes` is useful if you interrupt a process using a GPU but find that, even though `nvidia-smi` no longer shows the process, the memory is still being held. It will send `kill -9` to all such processes so you can reclaim your GPU memory.
 
 `tmux_gpu_info.py` just prints a list of the percent utilization of each GPU; you can, e.g., show this in the status bar of `tmux` to keep an eye on your GPUs.
+
+[pypi page]: https://pypi.org/project/gpu-utils/
