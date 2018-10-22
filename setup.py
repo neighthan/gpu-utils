@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
     name="gpu_utils",
-    version="0.1.2",
+    version="0.1.3",
     author="Nathan Hunt",
     author_email="neighthan.hunt@gmail.com",
     description="Utility functions for working with GPUs.",

@@ -5,7 +5,7 @@ A few small functions/scripts for working with GPUs.
 ## Requirements
 
 * Python 3.6+
-* Linux OS (only tested on Ubuntu; I use `subprocess.run` for things like `kill` and `lsof`)
+* Linux OS (only tested on Ubuntu; I use `subprocess.run` for things like `nvidia-smi`, `kill`, and `lsof`)
 
 ## Installation
 
@@ -19,8 +19,9 @@ pip install gpu_utils
 from gpu_utils.utils import gpu_init
 
 # sets GPU ids to use nvidia-smi ordering (CUDA_DEVICE_ORDER = PCI_BUS_ID)
-# finds the gpu with the most free utilization
+# finds the gpu with the most free utilization or memory
 # hides all other GPUs so you only use this one (CUDA_VISIBLE_DEVICES = <gpu_id>)
+# optionally sets up a `tf.ConfigProto` or `torch.device`
 gpu_id = gpu_init(best_gpu_metric="util") # could also use "mem"
 ```
 
