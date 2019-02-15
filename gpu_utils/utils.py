@@ -1,73 +1,96 @@
 import os
-import re
+import psutil
+import pynvml as nv
 from collections import namedtuple
-from subprocess import run, PIPE
-from typing import Sequence, List, Optional
+from contextlib import contextmanager
+from typing import Sequence, List, Optional, Dict, Union
+
 
 # mem in MiB, util as % used
-GPU = namedtuple("GPU", ["num", "mem_used", "mem_free", "util_used", "util_free"])
+_GPU = namedtuple(
+    "GPU", ["idx", "mem_used", "mem_free", "util_used", "util_free", "processes"]
+)
+_Process = namedtuple("Process", ["user", "command", "gpu_mem_used", "pid"])
 
 
-def nvidia_smi(all_output: bool = False) -> str:
-    """
-    :param all_output: whether to return all output from nvidia-smi. If true, `nvidia-smi` (no flags) is run. Otherwise,
-        `nvidia-smi --query-gpu=index,memory.used,memory.total,utilization.gpu --format=csv` is run.
-        This results in a format that is easier to parse to get memory and utilization information, but
-        it doesn't contain all information that `nvidia-smi` does by default.
-    :returns: standard output from nvidia-smi
-    """
+@contextmanager
+def _nvml():
+    """Enter a context manager that will init and shutdown nvml."""
+    # Copyright (c) 2018 Bohumír Zámečník, Rossum Ltd., MIT license
+    # from https://github.com/rossumai/nvgpu/blob/a66dda5ae816a6a8936645fe0520cb4dc6354137/nvgpu/nvml.py#L5
+    # Modifications copyright 2019, Nathan Hunt, MIT license
 
-    smi_command = "nvidia-smi"
-    if not all_output:
-        smi_command += (
-            " --query-gpu=index,memory.used,memory.total,utilization.gpu --format=csv"
-        )
-    return run(smi_command.split(" "), stdout=PIPE).stdout.decode()
+    nv.nvmlInit()
+    yield
+    nv.nvmlShutdown()
 
 
-def get_n_gpus() -> int:
-    stdout = run("nvidia-smi -L".split(" "), stdout=PIPE).stdout
-    n_gpus = len(stdout.decode().strip().split("\n"))
-    return n_gpus
+def _try_except_nv_error(func, default, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
+    except nv.NVMLError:
+        return default
 
 
-def get_gpus(
-    skip_gpus: Sequence[int] = (), smi_info: str = "", keep_all: bool = False
-) -> List[GPU]:
-    """
-    :param skip_gpus: which GPUs not to include in the list
-    :param smi_info: info from calling `nvidia_smi()`; if not given, this is generated
-    :param keep_all: whether to keep all GPUs in the returned list, even those that don't show utilization in nvidia-smi;
-        util_free and util_used will be None for such GPUs if they're kept
-    :returns: a list of namedtuple('GPU', ['num', 'mem_used', 'mem_free', 'util_used', 'util_free'])
-    """
+def _to_mb(mem_in_bytes: int) -> int:
+    bytes_in_mb = 1024 * 1024
+    return int(mem_in_bytes / bytes_in_mb)
 
-    if not smi_info:
-        smi_info = nvidia_smi()
 
-    gpus = []
-    for line in smi_info.strip().split("\n")[1:]:  # 0 has headers
-        num, mem_used, mem_total, util_used = line.split(", ")
+def _get_processes(handle: nv.c_nvmlDevice_t) -> List[Dict[str, Union[str, int]]]:
+    nv_processes = []
+    nv_processes += _try_except_nv_error(
+        nv.nvmlDeviceGetComputeRunningProcesses, [], handle
+    )
+    nv_processes += _try_except_nv_error(
+        nv.nvmlDeviceGetGraphicsRunningProcesses, [], handle
+    )
 
-        num = int(num)
-        if num in skip_gpus:
-            continue
-
-        mem_used = int(mem_used.split(" ")[0])
-        mem_total = int(mem_total.split(" ")[0])
-        mem_free = mem_total - mem_used
-
+    processes = []
+    for nv_process in nv_processes:
         try:
-            util_used = int(util_used.split(" ")[0])
-            util_free = 100 - util_used
-        except ValueError:  # utilization not supported
-            if not keep_all:
-                continue
-            util_used = None
-            util_free = None
+            ps_process = psutil.Process(pid=nv_process.pid)
+            process = _Process(
+                ps_process.username(),
+                " ".join(ps_process.cmdline() or ""),
+                _to_mb(nv_process.usedGpuMemory),
+                nv_process.pid,
+            )
+            processes.append(process)
+        except psutil.NoSuchProcess:
+            pass
+    return processes
 
-        gpus.append(GPU(num, mem_used, mem_free, util_used, util_free))
 
+def get_gpus(include_processes: bool = False) -> List[_GPU]:
+    """
+    Get a list of the GPUs on this machine.
+
+    Any GPUs that don't support querying utilization will have
+    util_used == util_free == -1.
+
+    :param include_processes: whether to include a list of the
+      processes running on each GPU; this takes more time.
+    :returns: a list of the GPUs
+    """
+    gpus = []
+
+    with _nvml():
+        for i in range(nv.nvmlDeviceGetCount()):
+            handle = nv.nvmlDeviceGetHandleByIndex(i)
+            memory = nv.nvmlDeviceGetMemoryInfo(handle)
+            mem_used = _to_mb(memory.used)
+            mem_free = _to_mb(memory.free)
+
+            try:
+                util = nv.nvmlDeviceGetUtilizationRates(handle)
+                util_used = util.gpu
+                util_free = 100 - util_used
+            except nv.NVMLError:
+                util_used = util_free = -1
+
+            processes = _get_processes(handle) if include_processes else []
+            gpus.append(_GPU(i, mem_used, mem_free, util_used, util_free, processes))
     return gpus
 
 
@@ -85,7 +108,7 @@ def get_best_gpu(metric: str = "util") -> int:
         assert metric == "mem"
         best_gpu = max(gpus, key=lambda gpu: gpu.mem_free)
 
-    return best_gpu.num
+    return best_gpu.idx
 
 
 def gpu_init(
@@ -143,14 +166,3 @@ def gpu_init(
         raise NotImplementedError(f"Support for {ml_library} is not implemented.")
 
     return gpu_id
-
-
-def get_running_pids(smi_info: Optional[str] = None) -> List[str]:
-    """
-    :param smi_info: from running `nvidia_smi(all_output=True)`; generated if not given
-    """
-    smi_info = smi_info or nvidia_smi(all_output=True)
-    # just by inspection; PID lines start "|    gpu_id    pid"
-    pid_matcher = re.compile(r"\|\s+\d\s+(\d+)")
-    pids = re.findall(pid_matcher, smi_info)
-    return pids

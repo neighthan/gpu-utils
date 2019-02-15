@@ -48,4 +48,8 @@ session = tf.Session(config=config)
 
 `tmux_gpu_info.py` just prints a list of the percent utilization of each GPU; you can, e.g., show this in the status bar of `tmux` to keep an eye on your GPUs.
 
+## Acknowledgements
+* Using `pynvml` instead of parsing `nvidia-smi` with regular expressions made this library much faster; thanks to [`gpustat`][gpustat] for showing me this library and some ideas about the output format for the `gpu` script.
+
 [pypi page]: https://pypi.org/project/gpu-utils/
+[gpustat]: https://github.com/wookayin/gpustat
