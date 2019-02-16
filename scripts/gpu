@@ -27,7 +27,7 @@ def print_gpu_info() -> None:
     )
 
     args = parser.parse_args()
-    gpus = get_gpus(include_processes=True)
+    gpus = get_gpus(include_processes=args.hide_cmd)
     print(get_gpu_string(gpus, args.max_cmd_width, args.hide_cmd, args.no_color))
 
 
