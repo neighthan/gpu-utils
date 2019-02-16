@@ -5,7 +5,8 @@ A few small functions/scripts for working with GPUs.
 ## Requirements
 
 * Python 3.6+
-* Linux OS (only tested on Ubuntu; I use `subprocess.run` for things like `nvidia-smi`, `kill`, and `lsof`)
+* Linux OS for full functionality (only tested on Ubuntu; I use `subprocess.run` for `kill` and `lsof`)
+  * Everything except `kill_interrupted_processes` should work on any OS
 
 ## Installation
 
@@ -49,7 +50,7 @@ session = tf.Session(config=config)
 `tmux_gpu_info.py` just prints a list of the percent utilization of each GPU; you can, e.g., show this in the status bar of `tmux` to keep an eye on your GPUs.
 
 ## Acknowledgements
-* Using `pynvml` instead of parsing `nvidia-smi` with regular expressions made this library much faster; thanks to [`gpustat`][gpustat] for showing me this library and some ideas about the output format for the `gpu` script.
+* Using `pynvml` instead of parsing `nvidia-smi` with regular expressions made this library a bit faster and much more robust than my previous regex parsing of `nivida-smi`'s output; thanks to [`gpustat`][gpustat] for showing me this library and some ideas about the output format for the `gpu` script.
 
 [pypi page]: https://pypi.org/project/gpu-utils/
 [gpustat]: https://github.com/wookayin/gpustat

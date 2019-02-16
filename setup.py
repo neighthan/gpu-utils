@@ -27,9 +27,12 @@ setuptools.setup(
     ],
 )
 
-config_dest = Path.home() / ".config" / "gpu_utils" / "gpu_printing_config.py"
+config_folder = Path("~/.config/gpu_utils").expanduser()
+config_dest = config_folder / "gpu_printing_config.py"
 config_src = Path(__file__).resolve().parent / "gpu_printing_config.py"
 
 if not config_dest.exists():
-    config_dest.parent.mkdir(parents=True, exist_ok=True)
+    config_folder.mkdir(parents=True, exist_ok=True)
     config_dest.write_text(config_src.read_text())
+
+(config_folder / "__init__.py").touch()

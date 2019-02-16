@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Sequence, List, Optional, Dict, Union
 from colored import fg, bg, attr, names  # https://gitlab.com/dslackw/colored
 
-_CONFIG = Path.home() / ".config" / "gpu_utils" / "gpu_printing_config.py"
-sys.path.append(_CONFIG)
+_CONFIG = Path.home() / ".config" / "gpu_utils"
+sys.path.append(str(_CONFIG))
 from gpu_printing_config import (
     base_format,
     sep,
