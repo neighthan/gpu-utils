@@ -1,9 +1,23 @@
 import os
 import psutil
+import sys
 import pynvml as nv
 from collections import namedtuple
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Sequence, List, Optional, Dict, Union
+from colored import fg, bg, attr, names  # https://gitlab.com/dslackw/colored
+
+_CONFIG = Path.home() / ".config" / "gpu_utils" / "gpu_printing_config.py"
+sys.path.append(_CONFIG)
+from gpu_printing_config import (
+    base_format,
+    sep,
+    colors,
+    process_base_format,
+    process_sep,
+    process_colors,
+)
 
 
 # mem in MiB, util as % used
@@ -11,6 +25,39 @@ _GPU = namedtuple(
     "GPU", ["idx", "mem_used", "mem_free", "util_used", "util_free", "processes"]
 )
 _Process = namedtuple("Process", ["user", "command", "gpu_mem_used", "pid"])
+
+
+class _GPUList(list):
+    """List wrapper that does pretty-printing."""
+
+    def __str__(
+        self, max_cmd_width: int = 125, hide_cmd: bool = False, no_color: bool = False
+    ):
+        return get_gpu_string(self, max_cmd_width, hide_cmd, no_color)
+
+
+# define colors (including attributes) that can be used in format strings
+# for pretty-printing GPU info
+
+_attrs = [
+    "bold",
+    "dim",
+    "underlined",
+    "blink",
+    "reverse",
+    "hidden",
+    "reset",
+    "res_bold",
+    "res_dim",
+    "res_underlined",
+    "res_blink",
+    "res_reverse",
+    "res_hidden",
+]
+_fg_colors = {f"fg('{color.lower()}')": fg(color.lower()) for color in names}
+_bg_colors = {f"bg('{color.lower()}')": bg(color.lower()) for color in names}
+_attrs = {f"attr('{name}')": attr(name) for name in _attrs}
+_colors = {**_fg_colors, **_bg_colors, **_attrs}
 
 
 @contextmanager
@@ -73,7 +120,7 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
       processes running on each GPU; this takes more time.
     :returns: a list of the GPUs
     """
-    gpus = []
+    gpus = _GPUList()
 
     with _nvml():
         for i in range(nv.nvmlDeviceGetCount()):
@@ -166,3 +213,49 @@ def gpu_init(
         raise NotImplementedError(f"Support for {ml_library} is not implemented.")
 
     return gpu_id
+
+
+def get_gpu_string(
+    gpus: Sequence[_GPU],
+    max_cmd_width: int = 125,
+    hide_cmd: bool = False,
+    no_color: bool = False,
+) -> str:
+    gpu_string = ""
+
+    # combine base format and color commands into the fstrings
+
+    if no_color:
+        fstring = sep.join(base_format)
+        process_fstring = process_sep.join(process_base_format)
+    else:
+        fstring = sep.join(
+            [
+                colors[i] + base_format[i] + "{attr('reset')}"
+                for i in range(len(base_format))
+            ]
+        )
+
+        process_fstring = process_sep.join(
+            [
+                process_colors[i] + process_base_format[i] + "{attr('reset')}"
+                for i in range(len(process_base_format))
+            ]
+        )
+
+    process_fstring = process_fstring.replace("<max_cmd_width>", str(max_cmd_width))
+
+    for gpu in gpus:
+        gpu_string += fstring.format(**gpu._asdict(), **_colors)
+        gpu_string += os.linesep
+
+        if hide_cmd or not gpu.processes:
+            continue
+
+        for i, process in enumerate(gpu.processes):
+            gpu_string += " └─ " if i == len(gpu.processes) - 1 else " ├─ "
+            gpu_string += process_fstring.format(
+                **process._asdict(), **_colors, max_cmd_width=max_cmd_width
+            )
+            gpu_string += os.linesep
+    return gpu_string.strip()
