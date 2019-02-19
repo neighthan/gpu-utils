@@ -1,12 +1,15 @@
 import setuptools
 from pathlib import Path
 
-with open("README.md", "r") as f:
-    long_description = f.read()
+
+long_description = (Path(__file__).parent / "README.md").read_text()
+
+version = {}
+exec((Path(__file__).parent / "gpu_utils/_version.py").read_text(), version)
 
 setuptools.setup(
     name="gpu_utils",
-    version="0.2.0",
+    version=version["__version__"],
     author="Nathan Hunt",
     author_email="neighthan.hunt@gmail.com",
     description="Utility functions for working with GPUs.",
