@@ -11,7 +11,7 @@ A few small functions/scripts for working with GPUs.
 ## Installation
 
 ```
-pip install gpu_utils
+pip install gpu-utils
 ```
 
 The PyPI page is [here][pypi page].
@@ -19,7 +19,7 @@ The PyPI page is [here][pypi page].
 ## Usage
 
 ```python
-from gpu_utils.utils import gpu_init
+from gpu_utils import gpu_init
 
 # sets GPU ids to use nvidia-smi ordering (CUDA_DEVICE_ORDER = PCI_BUS_ID)
 # finds the gpu with the most free utilization or memory
@@ -43,7 +43,7 @@ session = tf.Session(config=config)
 
 ## Command Line Scripts
 
-`gpu` runs `nvidia-smi` and then `ps u <pid>` on the PIDs so you can see who is running what. I plan to make the output more concise than `nvidia-smi` at some point.
+`gpu` is a more concise and prettier version of `nvidia-smi`. It is similar to [`gpustat`][gpustat] but with more control over the color configuration and the ability to show the full processes running on each GPU.
 
 `kill_interrupted_processes` is useful if you interrupt a process using a GPU but find that, even though `nvidia-smi` no longer shows the process, the memory is still being held. It will send `kill -9` to all such processes so you can reclaim your GPU memory.
 
