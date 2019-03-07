@@ -19,6 +19,9 @@ colored = "^1.3"
 nvidia-ml-py3 = "^7.352"
 
 [tool.poetry.dev-dependencies]
+invoke = {git = "https://github.com/neighthan/invoke.git"}
+pre-commit = "^1.14"
+twine = "^1.13"
 
 [build-system]
 requires = ["poetry>=0.12"]
