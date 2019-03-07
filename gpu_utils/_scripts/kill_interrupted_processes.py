@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
 from subprocess import run, PIPE
 from argparse import ArgumentParser
-from gpu_utils import get_gpus
+from .. import get_gpus
 
 
 def kill_interrupted_processes(sudo: bool = False) -> None:

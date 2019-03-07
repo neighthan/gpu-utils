@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 from argparse import ArgumentParser
-from gpu_utils.utils import get_gpus, get_gpu_string
+from ..utils import get_gpus, get_gpu_string
 
 
 def print_gpu_info() -> None:

@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "gpu-utils"
+description = "Utility functions for working with GPUs."
+version = "0.2.3"
+authors = ["Nathan Hunt <neighthan.hunt@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/neighthan/gpu-utils"
+
+[tool.poetry.scripts]
+gpu = "gpu_utils._scripts.gpu:print_gpu_info"
+kill_interrupted_processes = "gpu_utils._scripts.kill_interrupted_processes:main"
+tmux_gpu_info = "gpu_utils._scripts.tmux_gpu_info:main"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+psutil = "^5.6"
+colored = "^1.3"
+nvidia-ml-py3 = "^7.352"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
