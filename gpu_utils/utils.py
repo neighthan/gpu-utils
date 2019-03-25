@@ -161,6 +161,18 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
     return gpus
 
 
+def get_gpus_from_info_string(info_string: str) -> List[_GPU]:
+    """
+    Get a list of GPUs from output from nvidia-smi.
+
+    :param info_string: the output from running
+      nvidia-smi --query-gpu=index,memory.used,memory.total,utilization.gpu --format=csv
+    """
+    gpus = _GPUList()
+    for line in info_string.strip().replace("MiB", "").replace("%", "").split("\n")[1:]:
+        gpus.append(_GPU(*map(int, line.split(", "))))
+
+
 def get_best_gpu(metric: str = "util") -> int:
     """
     :param metric: one of {util, mem}; "best" means having the largest amount of the desired resource
