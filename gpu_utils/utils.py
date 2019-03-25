@@ -41,6 +41,11 @@ class _GPU:
         self.util_free = 100 - util_used
         self.processes = processes if processes is not None else []
 
+    def __repr__(self) -> str:
+        repr_attrs = ["idx", "mem_used", "mem_total", "processes"]
+        attr_str = ", ".join([f"{attr}={getattr(self, attr)}" for attr in repr_attrs])
+        return f"GPU({attr_str})"
+
 
 class _GPUList(list):
     """List wrapper that does pretty-printing."""
