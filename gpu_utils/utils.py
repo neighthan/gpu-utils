@@ -17,11 +17,29 @@ from .gpu_printing_config import (
 )
 
 
-# mem in MiB, util as % used
-_GPU = namedtuple(
-    "GPU", ["idx", "mem_used", "mem_free", "util_used", "util_free", "processes"]
-)
 _Process = namedtuple("Process", ["user", "command", "gpu_mem_used", "pid"])
+
+
+class _GPU:
+    """
+    Memory is in MiB, utilization is percent used/free.
+    """
+
+    def __init__(
+        self,
+        idx: int,
+        mem_used: int,
+        mem_total: int,
+        util_used: int,
+        processes: Optional[List[_Process]] = None,
+    ):
+        self.idx = idx
+        self.mem_used = mem_used
+        self.mem_free = mem_total - mem_used
+        self.mem_total = mem_total
+        self.util_used = util_used
+        self.util_free = 100 - util_used
+        self.processes = processes if processes is not None else []
 
 
 class _GPUList(list):
@@ -125,16 +143,16 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
             memory = nv.nvmlDeviceGetMemoryInfo(handle)
             mem_used = _to_mb(memory.used)
             mem_free = _to_mb(memory.free)
+            mem_total = mem_used + mem_free
 
             try:
                 util = nv.nvmlDeviceGetUtilizationRates(handle)
                 util_used = util.gpu
-                util_free = 100 - util_used
             except nv.NVMLError:
-                util_used = util_free = -1
+                util_used = float("nan")
 
             processes = _get_processes(handle) if include_processes else []
-            gpus.append(_GPU(i, mem_used, mem_free, util_used, util_free, processes))
+            gpus.append(_GPU(i, mem_used, mem_total, util_used, processes))
     return gpus
 
 
