@@ -266,7 +266,7 @@ def get_gpu_string(
     process_fstring = process_fstring.replace("<max_cmd_width>", str(max_cmd_width))
 
     for gpu in gpus:
-        gpu_string += fstring.format(**gpu._asdict(), **_colors)
+        gpu_string += fstring.format(**vars(gpu), **_colors)
         gpu_string += os.linesep
 
         if hide_cmd or not gpu.processes:
