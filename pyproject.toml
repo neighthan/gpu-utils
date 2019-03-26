@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "gpu-utils"
 description = "Utility functions for working with GPUs."
-version = "0.2.5"
+version = "0.2.6"
 authors = ["Nathan Hunt <neighthan.hunt@gmail.com>"]
 license = "MIT"
 readme = "README.md"
