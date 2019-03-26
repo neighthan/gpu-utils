@@ -170,7 +170,13 @@ def get_gpus_from_info_string(info_string: str) -> List[_GPU]:
     """
     gpus = _GPUList()
     for line in info_string.strip().replace("MiB", "").replace("%", "").split("\n")[1:]:
-        gpus.append(_GPU(*map(int, line.split(", "))))
+        idx, mem_used, mem_total, util_used = line.split(", ")
+        idx, mem_used, mem_total = map(int, (idx, mem_used, mem_total))
+        try:
+            util_used = int(util_used)
+        except ValueError:  # utilization is not supported on all GPUs
+            util_used = 101
+        gpus.append(_GPU(idx, mem_used, mem_total, util_used))
     return gpus
 
 
