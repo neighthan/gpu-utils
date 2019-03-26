@@ -171,6 +171,7 @@ def get_gpus_from_info_string(info_string: str) -> List[_GPU]:
     gpus = _GPUList()
     for line in info_string.strip().replace("MiB", "").replace("%", "").split("\n")[1:]:
         gpus.append(_GPU(*map(int, line.split(", "))))
+    return gpus
 
 
 def get_best_gpu(metric: str = "util") -> int:
