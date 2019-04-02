@@ -135,6 +135,7 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
 
     Any GPUs that don't support querying utilization will have
     util_used == util_free == -1.
+    If required nvidia libraries aren't found, an empty list will be returned.
 
     :param include_processes: whether to include a list of the
       processes running on each GPU; this takes more time.
@@ -142,22 +143,25 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
     """
     gpus = _GPUList()
 
-    with _nvml():
-        for i in range(nv.nvmlDeviceGetCount()):
-            handle = nv.nvmlDeviceGetHandleByIndex(i)
-            memory = nv.nvmlDeviceGetMemoryInfo(handle)
-            mem_used = _to_mb(memory.used)
-            mem_free = _to_mb(memory.free)
-            mem_total = mem_used + mem_free
+    try:
+        with _nvml():
+            for i in range(nv.nvmlDeviceGetCount()):
+                handle = nv.nvmlDeviceGetHandleByIndex(i)
+                memory = nv.nvmlDeviceGetMemoryInfo(handle)
+                mem_used = _to_mb(memory.used)
+                mem_free = _to_mb(memory.free)
+                mem_total = mem_used + mem_free
 
-            try:
-                util = nv.nvmlDeviceGetUtilizationRates(handle)
-                util_used = util.gpu
-            except nv.NVMLError:
-                util_used = float("nan")
+                try:
+                    util = nv.nvmlDeviceGetUtilizationRates(handle)
+                    util_used = util.gpu
+                except nv.NVMLError:
+                    util_used = float("nan")
 
-            processes = _get_processes(handle) if include_processes else []
-            gpus.append(_GPU(i, mem_used, mem_total, util_used, processes))
+                processes = _get_processes(handle) if include_processes else []
+                gpus.append(_GPU(i, mem_used, mem_total, util_used, processes))
+    except nv.NVMLError_LibraryNotFound:
+        pass
     return gpus
 
 
