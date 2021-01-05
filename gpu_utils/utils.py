@@ -158,7 +158,7 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
                 except nv.NVMLError:
                     util_used = float("nan")
 
-                processes = _get_processes(handle) if include_processes else []
+                processes = _get_processes(handle) if include_processes else None
                 gpus.append(_GPU(i, mem_used, mem_total, util_used, processes))
     except nv.NVMLError_LibraryNotFound:
         pass
