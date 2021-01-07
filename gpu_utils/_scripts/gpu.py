@@ -8,7 +8,7 @@ def print_gpu_info() -> None:
         "-mw",
         "--max_cmd_width",
         type=int,
-        default=125,
+        default=90,
         help="Width at which to truncate commands.",
     )
     parser.add_argument(
