@@ -149,7 +149,7 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
         with _nvml():
             for i in range(nv.nvmlDeviceGetCount()):
                 handle = nv.nvmlDeviceGetHandleByIndex(i)
-                name = str(nv.nvmlDeviceGetName(handle))
+                name = nv.nvmlDeviceGetName(handle).decode()
                 memory = nv.nvmlDeviceGetMemoryInfo(handle)
                 mem_used = _to_mb(memory.used)
                 mem_free = _to_mb(memory.free)
