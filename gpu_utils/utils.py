@@ -28,12 +28,14 @@ class _GPU:
     def __init__(
         self,
         idx: int,
+        name: str,
         mem_used: int,
         mem_total: int,
         util_used: int,
         processes: Optional[List[_Process]] = None,
     ):
         self.idx = idx
+        self.name = name
         self.mem_used = mem_used
         self.mem_free = mem_total - mem_used
         self.mem_total = mem_total
@@ -42,7 +44,7 @@ class _GPU:
         self.processes = processes if processes is not None else []
 
     def __repr__(self) -> str:
-        repr_attrs = ["idx", "mem_used", "mem_total", "processes"]
+        repr_attrs = ["idx", "name", "mem_used", "mem_total", "processes"]
         attr_str = ", ".join([f"{attr}={getattr(self, attr)}" for attr in repr_attrs])
         return f"GPU({attr_str})"
 
@@ -147,6 +149,7 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
         with _nvml():
             for i in range(nv.nvmlDeviceGetCount()):
                 handle = nv.nvmlDeviceGetHandleByIndex(i)
+                name = nv.nvmlDeviceGetName(handle).decode()
                 memory = nv.nvmlDeviceGetMemoryInfo(handle)
                 mem_used = _to_mb(memory.used)
                 mem_free = _to_mb(memory.free)
@@ -159,7 +162,7 @@ def get_gpus(include_processes: bool = False) -> List[_GPU]:
                     util_used = float("nan")
 
                 processes = _get_processes(handle) if include_processes else None
-                gpus.append(_GPU(i, mem_used, mem_total, util_used, processes))
+                gpus.append(_GPU(i, name, mem_used, mem_total, util_used, processes))
     except nv.NVMLError_LibraryNotFound:
         pass
     return gpus
@@ -170,17 +173,17 @@ def get_gpus_from_info_string(info_string: str) -> List[_GPU]:
     Get a list of GPUs from output from nvidia-smi.
 
     :param info_string: the output from running
-      nvidia-smi --query-gpu=index,memory.used,memory.total,utilization.gpu --format=csv
+      nvidia-smi --query-gpu=index,name,memory.used,memory.total,utilization.gpu --format=csv
     """
     gpus = _GPUList()
     for line in info_string.strip().replace("MiB", "").replace("%", "").split("\n")[1:]:
-        idx, mem_used, mem_total, util_used = line.split(", ")
+        idx, name, mem_used, mem_total, util_used = line.split(", ")
         idx, mem_used, mem_total = map(int, (idx, mem_used, mem_total))
         try:
             util_used = int(util_used)
         except ValueError:  # utilization is not supported on all GPUs
             util_used = 101
-        gpus.append(_GPU(idx, mem_used, mem_total, util_used))
+        gpus.append(_GPU(idx, name, mem_used, mem_total, util_used))
     return gpus
 
 
